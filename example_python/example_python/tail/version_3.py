@@ -1,7 +1,65 @@
-import time
+import os
 import sys
 
 from typing import Callable, List, NoReturn
+
+import pyinotify
+
+multi_event = pyinotify.IN_MODIFY | pyinotify.IN_MOVE_SELF  # 监控多个事件
+
+
+class InotifyEventHandler(pyinotify.ProcessEvent):  # 定制化事件处理类，注意继承
+    """
+    执行inotify event的封装
+    """
+    f: 'open()'
+    filename: str
+    path: str
+    wm: 'pyinotify.WatchManager'
+    output: Callable
+
+    def my_init(self, **kargs):
+        """不能直接继承__init__"""
+        filename: str = kargs.pop('filename')
+        if not os.path.exists(filename):
+            raise RuntimeError('Not Found filename')
+        if '/' not in filename:
+            filename = os.getcwd() + '/' + filename
+        index = filename.rfind('/')
+        if index == len(filename) - 1 or index == -1:
+            raise RuntimeError('Not a legal path')
+
+        self.f = None
+        self.filename = filename
+        self.path = filename[:index]
+        self.wm = kargs.pop('wm')
+        # 只监控路径,这样就能知道文件是否移动
+        self.wm.add_watch(self.path, multi_event)
+        self.output: Callable = kargs.pop('output')
+
+    def read_line(self):
+        # 统一的输出方法
+        for line in self.f.readlines():
+            self.output(line)
+
+    def process_IN_MODIFY(self, event):
+        """必须为process_事件名称，event表示事件对象"""
+        if event.pathname == self.filename:
+            self.read_line()
+
+    def process_IN_MOVE_SELF(self, event):
+        if event.pathname == self.filename:
+            # 检测到文件被移动重新打开文件
+            self.f.close()
+            self.f = open(self.filename)
+            self.read_line()
+
+    def __enter__(self) -> 'InotifyEventHandler':
+        self.f = open(self.filename)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.f.close()
 
 
 class Tail(object):
@@ -17,15 +75,18 @@ class Tail(object):
         self.interval: int = interval
         self.len_line: int = len_line
 
+        wm = pyinotify.WatchManager()  # 创建WatchManager对象
+        inotify_event_handler = InotifyEventHandler(
+            **dict(filename=file_name, wm=wm, output=output)
+        )  # 实例化我们定制化后的事件处理类, 采用**dict
+        wm.add_watch('/tmp', multi_event)  # 添加监控的目录，及事件
+        self.notifier = pyinotify.Notifier(wm, inotify_event_handler)  # 在notifier实例化时传入,notifier会自动执行
+        self.inotify_event_handle: 'InotifyEventHandler' = inotify_event_handler
+
     def __call__(self, n: int = 10):
-        with open(self.file_name) as f:
-            self.read_last_line(f, n)
-            while True:
-                line: str = f.readline()
-                if line:
-                    self.output(line)  # 使用print都会每次都打印新的一行
-                else:
-                    time.sleep(self.interval)
+        with self.inotify_event_handle as i:
+            self.read_last_line(i.f, n)
+            self.notifier.loop()
 
     def read_last_line(self, file, n):
         read_len: int = self.len_line * n
