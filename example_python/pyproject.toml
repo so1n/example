@@ -6,9 +6,16 @@ authors = ["So1n <qaz6803609@163.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
+pyinotify = "^0.9.6"
+uvicorn = "^0.13.3"
+starlette = "^0.14.1"
+pydantic = "^1.7.3"
+aiomysql = "^0.0.21"
+cryptography = "^3.3.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+pyinotify = "^0.9.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
