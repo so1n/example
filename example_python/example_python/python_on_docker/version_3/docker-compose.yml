@@ -1,0 +1,78 @@
+# version是必须指定的，而且总是位于文件的第一行。它定义了Compose文件格式（主要是API）的版本。建议使用最新版本。
+version: "3.5"
+# 用于定义不同的应用服务
+services:
+    redis:
+        # 基于redis:alpine镜像启动一个独立的名为redis的容器。
+        image: "redis:alpine"
+        # 使得Docker可以将服务连接到指定的网络上。这个网络应该是已经存在的，或者是在networks一级key中定义的网络。
+        networks:
+            - local-net
+        # 指定Docker将容器内（-target）的6379端口映射到主机（published）的63790端口。
+        ports:
+            - target: 6379
+              published: 63790
+    mysql:
+        image: mysql
+        command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci #设置utf8字符集
+        restart: always
+        networks:
+            local-net:
+        environment:
+            # 通过环境变量设置　mysql需要的用户名和密码等
+            MYSQL_DATABASE: 'test'
+            MYSQL_USER: 'root'
+            MYSQL_PASSWORD: ''
+            MYSQL_ROOT_PASSWORD: ''
+            MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+
+        # 指定Docker将容器内（-target）的3306端口映射到主机（published）的33060端口。
+        ports:
+            - target: 3306
+              published: 33060
+        volumes:
+            - type: volume
+              source: local-vol
+              target: /example_volumes
+    app:
+        # 指定Docker基于当前目录（.）下Dockerfile中定义的指令来构建一个新镜像。该镜像会被用于启动该服务的容器。
+        build: .
+        # 指定Docker在容器中执行的命令, 我们的Dockerfile中已经有了
+        # command:
+        # 指定Docker将容器内（-target）的8000端口映射到主机（published）的8000端口。
+        ports:
+            - target: 8000
+              published: 8000
+        networks:
+            - local-net
+        # 挂载到本地的卷
+        volumes:
+            - type: volume
+              source: local-vol
+              target: /example_volumes
+        # 声明需要依赖上面的服务
+        depends_on:
+            - mysql
+            - redis
+    nginx:
+        build: ./nginx
+
+        # 指定Docker将容器内（-target）的80端口映射到主机（published）的8001端口。
+        networks:
+            - local-net
+        ports:
+            - target: 80
+              published: 8001
+        depends_on:
+            - app
+
+
+
+# networks用于指引Docker创建新的网络。默认情况下，Docker Compose会创建bridge网络。这是一种单主机网络，只能够实现同一主机上容器的连接。当然，也可以使用driver属性来指定不同的网络类型。
+networks:
+    local-net:
+        driver: bridge
+
+volumes:
+    local-vol:
+
