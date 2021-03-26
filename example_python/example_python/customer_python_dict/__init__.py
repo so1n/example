@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Iterable, List, Optional, Tuple
 
 
 class CustomerDict(object):
@@ -9,7 +9,8 @@ class CustomerDict(object):
         self._load_factor: float = 2 / 3  # 扩容因子
         self._index_array: List[int] = [-1 for _ in range(self._init_length)]  # 存放下标的数组
         self._data_array: List[Optional[Tuple[int, Any, Any]]] = []  # 存放数据的数组
-        self._used: int = 0  # 目前用的量
+        self._used_count: int = 0  # 目前用的量
+        self._delete_count: int = 0  # 被标记删除的量
 
     def _create_new(self):
         """扩容函数"""
@@ -18,7 +19,8 @@ class CustomerDict(object):
         old_data_array: List[Tuple[int, Any, Any]] = self._data_array
         self._index_array: List[int] = [-1 for _ in range(self._init_length)]
         self._data_array: List[Tuple[int, Any, Any]] = []
-        self._used = 0
+        self._used_count = 0
+        self._delete_count = 0
 
         # 这里只是简单实现, 实际上只需要搬运一半的数据
         for item in old_data_array:
@@ -57,13 +59,13 @@ class CustomerDict(object):
         return value
 
     def __setitem__(self, key: Any, value: Any) -> None:
-        if (self._used / self._init_length) > self._load_factor:
+        if (self._used_count / self._init_length) > self._load_factor:
             self._create_new()
         index, _, _ = self._core(key)
 
-        self._index_array[index] = self._used
+        self._index_array[index] = self._used_count
         self._data_array.append((hash(key), key, value))
-        self._used += 1
+        self._used_count += 1
 
     def __delitem__(self, key: Any) -> None:
         index, _, data_index = self._core(key)
@@ -71,22 +73,46 @@ class CustomerDict(object):
             raise KeyError(key)
         self._index_array[index] = -2
         self._data_array[data_index] = None
+        self._delete_count += 1
+
+    def __len__(self) -> int:
+        return self._used_count - self._delete_count
+
+    def __iter__(self) -> Iterable:
+        return iter(self._data_array)
     
     def __str__(self) -> str:
         return str({item[1]: item[2] for item in self._data_array if item is not None})
+
+    def keys(self) -> List[Any]:
+        return [item[1] for item in self._data_array if item is not None]
+
+    def values(self) -> List[Any]:
+        return [item[2] for item in self._data_array if item is not None]
+
+    def items(self) -> List[Tuple[Any, Any]]:
+        return [(item[1], item[2]) for item in self._data_array if item is not None]
 
 
 if __name__ == '__main__':
     customer_dict: CustomerDict = CustomerDict()
     customer_dict["demo_1"] = "a"
     customer_dict["demo_2"] = "b"
-    print(customer_dict)
+    assert len(customer_dict) == 2
+
     del customer_dict["demo_1"]
     del customer_dict["demo_2"]
-    print(customer_dict)
+    assert len(customer_dict) == 0
+
     for i in range(30):
         customer_dict[i] = i
-    print(customer_dict)
+    assert len(customer_dict) == 30
+
+    customer_dict_value_list: List[Any] = customer_dict.values()
+    for i in range(30):
+        assert i == customer_dict[i]
+
     for i in range(30):
         assert customer_dict[i] == i
         del customer_dict[i]
+    assert len(customer_dict) == 0
