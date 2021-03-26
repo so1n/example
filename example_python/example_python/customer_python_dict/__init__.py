@@ -29,60 +29,46 @@ class CustomerDict(object):
         """如果下标对应的值冲突了, 需要计算下一跳的下标"""
         return ((5*index) + 1) % self._init_length
 
-    def __getitem__(self, key: Any) -> Any:
+    def _core(self, key: Any, default_value: Optional[Any] = None) -> Tuple[int, Any, int]:
+        """获取数据或者得到可以放新数据的方法, 返回值是index_array的索引, 数据, data_array的索引"""
         index: int = hash(key) % (self._init_length - 1)
         while True:
             data_index: int = self._index_array[index]
             # 如果是-1则代表没有数据
             if data_index == -1:
-                raise KeyError(key)
+                break
             # 如果是-2则代表之前有数据则不过被删除了
             elif data_index == -2:
                 index = self._get_next(index)
                 continue
 
-            _, new_key, value = self._data_array[data_index]
+            _, new_key, default_value = self._data_array[data_index]
+            # 判断是不是对应的key
             if key != new_key:
                 index = self._get_next(index)
             else:
-                return value
+                break
+        return index, default_value, data_index
+
+    def __getitem__(self, key: Any) -> Any:
+        _, value, data_index = self._core(key)
+        if data_index == -1:
+            raise KeyError(key)
+        return value
 
     def __setitem__(self, key: Any, value: Any) -> None:
-        index: int = hash(key) % (self._init_length - 1)
         if (self._used / self._init_length) > self._load_factor:
             self._create_new()
-        while True:
-            data_index: int = self._index_array[index]
-            if data_index == -1:
-                break
-            elif data_index == -2:
-                index = self._get_next(index)
-                continue
-            _, new_key, _ = self._data_array[data_index]
-            if key != new_key:
-                index = self._get_next(index)
-            else:
-                break
+        index, _, _ = self._core(key)
 
         self._index_array[index] = self._used
         self._data_array.append((hash(key), key, value))
         self._used += 1
 
     def __delitem__(self, key: Any) -> None:
-        index: int = hash(key) % (self._init_length - 1)
-        while True:
-            data_index: int = self._index_array[index]
-            if data_index == -1:
-                raise KeyError(key)
-            elif data_index == -2:
-                index = self._get_next(index)
-                continue
-
-            _, new_key, _ = self._data_array[data_index]
-            if key != new_key:
-                index = self._get_next(index)
-            else:
-                break
+        index, _, data_index = self._core(key)
+        if data_index == -1:
+            raise KeyError(key)
         self._index_array[index] = -2
         self._data_array[data_index] = None
     
