@@ -41,11 +41,10 @@ def params_verify(model: Type[Model]):
     def wrapper(func: Callable):
         @wraps(func)
         async def request_param(request: Request, *args, **kwargs):
-            # 获取参数
-            if request.method == 'GET':
-                param_dict: dict = dict(request.query_params)
-            else:
-                param_dict: dict = await request.json()
+            # 获取参数, 这里只做简单演示, 只获取url和json请求的数据
+            param_dict: dict = dict(request.query_params)
+            if request.method == "POST":
+                param_dict.update(await request.json())
             instance_model: Model = model()
             try:
                 for key, key_type in instance_model.to_dict().items():

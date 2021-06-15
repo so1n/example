@@ -104,17 +104,15 @@ class CustomModel(Model):
     user_name = Field(str, max_length=4)
 
 
-
 def params_verify(model: Type[Model]):
     """装饰器"""
     def wrapper(func: Callable):
         @wraps(func)
         async def request_param(request: Request, *args, **kwargs):
-            # 获取参数
-            if request.method == 'GET':
-                param_dict: dict = dict(request.query_params)
-            else:
-                param_dict: dict = await request.json()
+            # 获取参数, 这里只做简单演示, 只获取url和json请求的数据
+            param_dict: dict = dict(request.query_params)
+            if request.method == "POST":
+                param_dict.update(await request.json())
             instance_model: Model = model()
             try:
                 for key in instance_model.field_list:
