@@ -60,23 +60,21 @@ class MetaPathLoader:
         return module
 
 
-sys.meta_path.insert(0, MetaPathFinder())
-
+async def test_mysql() -> None:
+    import aiomysql
+    pool: aiomysql.Pool = await aiomysql.create_pool(
+        host='127.0.0.1', port=3306, user='root', password='', db='mysql'
+    )
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT 42;")
+            (r,) = await cur.fetchone()
+            assert r == 42
+    pool.close()
+    await pool.wait_closed()
 
 if __name__ == '__main__':
-    import aiomysql
+    sys.meta_path.insert(0, MetaPathFinder())
     import asyncio
 
-
-    async def main():
-        pool: aiomysql.Pool = await aiomysql.create_pool(
-            host='127.0.0.1', port=3306, user='root', password='', db='mysql'
-        )
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("SELECT 42;")
-                (r,) = await cur.fetchone()
-                assert r == 42
-        pool.close()
-        await pool.wait_closed()
-    asyncio.run(main())
+    asyncio.run(test_mysql())
