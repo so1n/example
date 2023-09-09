@@ -1,0 +1,57 @@
+syntax = "proto3";
+package user;
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// login
+message LoginRequest {
+  string user_id = 1;
+  string password = 2;
+}
+
+message LoginResult {
+  string token = 1;
+  google.protobuf.Timestamp expire_time = 2;
+}
+
+// logout
+message LogoutRequest {
+  string token = 1;
+}
+
+// user info
+message InfoRequest {
+  string user_id = 1;
+}
+
+message InfoResult {
+  string user_id = 1;
+  string user_name = 2;
+}
+
+// check token
+message CheckTokenRequest {
+  string token = 1;
+}
+
+message CheckTokenResult {
+  int32 result = 1;
+}
+
+// chatroom
+message ChatroomRequest {
+  string msg_id = 1;
+  string content = 2;
+}
+message ChatroomResult {
+  string msg_id = 1;
+  string content = 2;
+}
+
+service User {
+  rpc login (LoginRequest) returns (LoginResult);
+  rpc logout (LogoutRequest) returns (google.protobuf.Empty);
+  rpc info (InfoRequest) returns (InfoResult);
+  rpc check_token (CheckTokenRequest) returns (CheckTokenResult);
+  rpc chatroom (CheckTokenRequest) returns (CheckTokenResult);
+}

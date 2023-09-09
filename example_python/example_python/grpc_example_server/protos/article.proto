@@ -1,0 +1,39 @@
+syntax = "proto3";
+package article;
+import "google/protobuf/empty.proto";
+
+// article
+message ArticleResult {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  int32 like_cnt = 4;
+  repeated string tag = 5;
+}
+
+message ArticleResultList {
+  repeated ArticleResult result = 1;
+}
+
+// like
+message LikeRequest {
+  string article_id = 1;
+}
+
+message LikeResult {
+  int32 like_cnt = 1;
+}
+
+// post article
+message PostArticleRequest {
+  string title = 1;
+  string content = 2;
+  repeated string tag = 3;
+}
+
+service article {
+  rpc get_article_list (google.protobuf.Empty) returns (ArticleResultList);
+  rpc get_article (google.protobuf.Empty) returns (stream ArticleResult);
+  rpc like (stream LikeRequest) returns (LikeResult);
+  rpc post_article (PostArticleRequest) returns (google.protobuf.Empty);
+}
