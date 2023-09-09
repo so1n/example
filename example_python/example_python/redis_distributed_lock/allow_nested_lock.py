@@ -1,11 +1,12 @@
 import asyncio
-from uuid import uuid1
-import random
 import logging
+import random
+from contextvars import ContextVar
+from typing import Dict, Optional, List
+from uuid import uuid1
+
 from redis.asyncio import Redis
 from redis.asyncio.lock import LockError, LockNotOwnedError
-from typing import Dict, Optional, List
-from contextvars import ContextVar
 
 _lock_ctx: ContextVar[dict] = ContextVar("lock_ctx", default={})
 
@@ -82,11 +83,11 @@ class Manager(object):
 
 class AllowNestedLock(object):
     def __init__(
-        self,
-        client: Redis,
-        manager: Manager,
-        name: str,
-        timeout: int = 9,
+            self,
+            client: Redis,
+            manager: Manager,
+            name: str,
+            timeout: int = 9,
     ) -> None:
         self._name = name
         self._manager = manager

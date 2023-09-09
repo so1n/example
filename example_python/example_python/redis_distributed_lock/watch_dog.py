@@ -1,8 +1,9 @@
 import asyncio
 import time
 from typing import Optional, Union
-from redis.asyncio.lock import Lock
+
 from redis.asyncio import Redis
+from redis.asyncio.lock import Lock
 
 
 class WithWatchDogLock(Lock):
@@ -19,10 +20,10 @@ class WithWatchDogLock(Lock):
             _old_watch_dog.cancel()
 
     async def acquire(
-        self,
-        blocking: Optional[bool] = None,
-        blocking_timeout: Optional[float] = None,
-        token: Optional[Union[str, bytes]] = None,
+            self,
+            blocking: Optional[bool] = None,
+            blocking_timeout: Optional[float] = None,
+            token: Optional[Union[str, bytes]] = None,
     ) -> bool:
         result = await super().acquire(blocking, blocking_timeout, token)
         if result:

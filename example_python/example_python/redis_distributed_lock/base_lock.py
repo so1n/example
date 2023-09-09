@@ -1,10 +1,11 @@
 import asyncio
-from uuid import uuid1
-import random
 import logging
+import random
+from typing import Dict, Optional, List
+from uuid import uuid1
+
 from redis.asyncio import Redis
 from redis.asyncio.lock import LockError, LockNotOwnedError
-from typing import Dict, Optional, List
 
 
 class Proxy(object):
